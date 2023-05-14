@@ -1,0 +1,29 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.8.20'
+}
+
+group = 'ru.dargen'
+version = '1.0.0'
+
+repositories {
+    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+    maven { url 'https://repo.starfarm.fun/repository/maven-public' }
+}
+
+dependencies {
+    implementation fileTree('.libs')
+
+    implementation 'net.dv8tion:JDA:5.0.0-alpha.18'
+
+    implementation 'org.jsoup:jsoup:1.14.2'
+    implementation 'ru.dargen:rest-client:1.0.0'
+}
+
+jar {
+    from configurations.runtimeClasspath.collect(project.&zipTree)
+    duplicatesStrategy DuplicatesStrategy.EXCLUDE
+
+    manifest { attributes('Main-Class': 'ru.dargen.nollen.MainKt') }
+}
+
+tasks.withType(JavaCompile)*.options*.encoding = 'UTF-8'
