@@ -19,17 +19,22 @@ class GigaChatAI(
     cooldown: Long?
 ) : AbstractStorableAI(cooldown?.let(Duration::ofSeconds)) {
 
+    val processing = mutableSetOf<UUID>()
+
     override fun request(id: Long, completion: Completion): CompletableFuture<AIResponse> {
         val sessionId = UUID.nameUUIDFromBytes(id.toString().toByteArray())
 
         return CompletableFuture.supplyAsync {
             runCatching {
+                if (!processing.add(sessionId))
+                    throw AIResponseException("Данный контекст уже имеет активный запрос!")
+
                 GigaChat.request(
                     GigaChatRequestData(
                         sessionId,
                         completion.history.last().content,
                     ), spaceId, userId, cookies
-                ).takeIf { println(it); it == "accepted" } ?: throw AIResponseException("Данный контекст уже имеет активный запрос!")
+                ).takeIf { it == "accepted" } ?: throw AIResponseException("Данный контекст уже имеет активный запрос!")
 
                 //so dumb and stupid
                 for (i in 0..240) {
@@ -60,6 +65,7 @@ class GigaChatAI(
                 AIResponse("Время выполнения запроса вышло!")
 
             }.run {
+                processing.remove(sessionId)
                 getOrNull() ?: exceptionOrNull()?.let {
                     it.printStackTrace()
                     throw AIResponseException(it.localizedMessage)

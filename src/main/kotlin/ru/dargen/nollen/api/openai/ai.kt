@@ -21,7 +21,7 @@ class OpenAI(private val key: String, cooldown: Long?) : AbstractStorableAI(cool
                                 && it.status == ResponseStatus.BAD_REQUEST -> "Данный контекст достиг максимума!"
 
                         it is ResponseException
-                                && it.status == ResponseStatus.BAD_REQUEST -> "Данный контекст достиг максимума!"
+                                && it.status == ResponseStatus.TOO_MANY_REQUESTS -> "Слишком много запросов повторите позже!"
 
                         else -> "Ошибка при запросе: ${it.localizedMessage}"
                     })
