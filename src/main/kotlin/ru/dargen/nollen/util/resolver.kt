@@ -26,7 +26,7 @@ private val TextElements = listOf(
 ).joinToString(",")
 
 
-fun resolveImageText(inputStream: InputStream) = Tesseract.doOCR(ImageIO.read(inputStream))
+fun resolveImageText(inputStream: InputStream) = "Текст с картинки: ${Tesseract.doOCR(ImageIO.read(inputStream))}"
 
 fun resolveURLsContents(text: String) = text.split(" ")
     .joinToString(" ") { if (it.startsWith("http")) resolveWebSiteContent(it) else it }
@@ -38,7 +38,7 @@ fun resolveWebSiteContent(url: String) = runCatching {
 
     val textElements = document.select(TextElements)
 
-    textElements.joinToString("\n", transform = Element::text)
+    "Текст с сайта $url: ${textElements.joinToString("\n", transform = Element::text)}"
 }.getOrNull() ?: url
 
-fun resolveFileText(inputStream: InputStream) = String(inputStream.readBytes())
+fun resolveFileText(name: String, inputStream: InputStream) = "Содержание файла $name:${String(inputStream.readBytes())}"
