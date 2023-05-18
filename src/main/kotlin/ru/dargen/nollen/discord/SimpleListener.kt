@@ -1,5 +1,6 @@
 package ru.dargen.nollen.discord
 
+import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
@@ -9,57 +10,8 @@ import ru.dargen.nollen.data.getChat
 
 object SimpleListener : ListenerAdapter() {
 
-
-//    override fun onMessageReceived(event: MessageReceivedEvent) {
-//        if (event.author.isBot) return
-//
-//        val channelId =
-//            if (event.isFromThread) event.channel.asThreadChannel().parentChannel.idLong
-//            else event.channel.idLong
-//        val type = Channels.entries.firstOrNull { (_, ids) -> channelId in ids }?.key ?: return
-//
-//        var content = resolveCompletionRequest(event.message).takeIf(String::isNotBlank) ?: return
-//
-//        val channel = if (!event.isFromThread) event.channel
-//            .asTextChannel()
-//            .createThreadChannel(
-//                content.run { if (length > 100) substring(0, 100) else this },
-//                true//event.messageId
-//            )
-//            .setInvitable(true)
-//            .complete()
-//            .apply {
-//                addThreadMemberById(event.author.idLong).queue()
-//            }
-//        else event.channel.asThreadChannel()
-//
-//        if (event.message.author.idLong == 1017841031972130866) {
-//            val replaces = content.toSet().shuffled().let {
-//                it.take(min(15, it.size))
-//            }
-//            replaces.forEach { content = content.replace(it, it + 10) }
-//        }
-//
-//        channel.sendTyping().queue()
-//        val message = channel.sendMessage("Запрос в очереди...").complete()
-//
-//        AIProvider.request(channel.idLong, type, content) {
-//            message.editMessage("Запрос выполняется...").queue()
-//        }.thenAccept {
-//            it.message.takeIf(String::isNotBlank)
-//                ?.chunked(2000)
-//                ?.apply { channel.sendTyping().complete(); message.delete().queue() }
-//                ?.forEach { message -> channel.sendMessage(message).complete() }
-//
-//            it.files
-//                .takeIf(Map<*, *>::isNotEmpty)
-//                ?.map { (name, data) -> FileUpload.fromData(data, name) }
-//                ?.apply { channel.sendFiles(this).queue() }
-//        }
-//    }
-
     override fun onMessageReceived(event: MessageReceivedEvent) {
-        if (event.author.isBot) return
+        if (event.author.isBot || event.channel.type != ChannelType.GUILD_PRIVATE_THREAD) return
 
         event.message.getChat()?.let { ChatProcessor.requestAI(it, event) }
     }

@@ -82,7 +82,7 @@ object ChatProcessor {
             chat.removeLatest()
 
         requestAIRaw(chat!!)
-        event.hook.sendMessage("Запущены повторный запрос!").queue()
+        event.hook.sendMessage("Отправлен повторный запрос!").queue()
     }
 
     fun requestAI(chat: Chat, event: MessageReceivedEvent) {
