@@ -1,7 +1,10 @@
 package ru.dargen.nollen.util
 
+import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.Message.Attachment
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
+import ru.dargen.nollen.discord.isAudio
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
@@ -25,6 +28,24 @@ private val TextElements = listOf(
     "ul", "ol", "li", "dl", "dt", "dd", "label"
 ).joinToString(",")
 
+fun Message.resolveContent(): String {
+    var content = contentRaw
+//    content = resolveURLsContents(contentRaw)
+
+    content += attachments
+        .mapNotNull(Attachment::resolveContent)
+        .joinToString("\n", prefix = "\n")
+
+    return content
+}
+
+private fun Message.Attachment.resolveContent(): String? {
+    return when {
+        isImage -> resolveImageText(retrieveInputStream().get())
+        isAudio || isVideo -> null
+        else -> resolveFileText(fileName, retrieveInputStream().get())
+    }
+}
 
 fun resolveImageText(inputStream: InputStream) = "Текст с картинки: ${Tesseract.doOCR(ImageIO.read(inputStream))}"
 

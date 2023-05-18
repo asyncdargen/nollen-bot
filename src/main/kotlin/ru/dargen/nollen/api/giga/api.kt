@@ -1,10 +1,8 @@
-package ru.dargen.nollen.api.gigachat
+package ru.dargen.nollen.api.giga
 
 import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 import ru.dargen.nollen.RestClient
-import ru.dargen.nollen.api.Completion
-import ru.dargen.nollen.api.CompletionMessage
 import ru.dargen.rest.annotation.*
 import ru.dargen.rest.annotation.parameter.Body
 import ru.dargen.rest.annotation.parameter.Header
@@ -53,7 +51,3 @@ data class GigaChatHistoryData(
     @SerializedName("limit") val limit: Int = 1,
     @SerializedName("newer_first") val newerFirst: Boolean = true
 )
-
-data class CompletionRequestData(val messages: List<CompletionMessage>, val model: String = "gpt-3.5-turbo") {
-    constructor(completion: Completion) : this(completion.history)
-}

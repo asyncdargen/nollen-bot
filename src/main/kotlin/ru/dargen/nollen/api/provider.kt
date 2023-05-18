@@ -4,80 +4,80 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import ru.dargen.nollen.Executor
+import ru.dargen.nollen.data.Chat
 import java.util.*
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
-import kotlin.concurrent.thread
 
 object AIProvider {
 
     private val Factories = mutableMapOf<String, AIFactory>()
-    private val AIs: MutableMap<String, MutableList<AI>> = ConcurrentHashMap()
-    private val Requests: Queue<AIRequest> = LinkedList()
+    private val Requests: MutableMap<String, Queue<AIRequest>> = hashMapOf()
+    private val CompletingRequests: MutableSet<AIRequest> = Collections.newSetFromMap(ConcurrentHashMap())
+
+    private val AIs: MutableList<AI> = arrayListOf()
 
     init {
-        thread(isDaemon = true, name = "AI-Processor") {
-            while (true) runCatching {
+        Executor.scheduleAtFixedRate({
+            runCatching {
                 synchronized(Requests) {
-                    Requests.peek()?.let {
-                        val ai = AIs[it.type]
-                            ?.firstOrNull()
-                            //lock mechanism
-                            ?.apply { if (hasCooldown()) AIs[it.type]?.remove(this) } ?: return@let
+                    AIs.filter { it.timeout.isTimedOut() }.forEach { ai ->
+                        Requests[ai.type]?.poll()?.let {
+                            ai.timeout.set()
+                            it.statusHandler?.invoke(AIRequest.ProcessStatus.REQUESTING)
 
-                        Requests.remove(it)
-                        it.activateHandler?.invoke()
+                            CompletingRequests.add(it)
 
-                        ai.request(it.id, it.message).whenComplete { response, throwable ->
-                            it.future.complete(
-                                (response ?: ((throwable as CompletionException).cause)!!.localizedMessage.let(::AIResponse))
-                            )
+                            ai.request(it.chat).whenComplete { response, throwable ->
+                                CompletingRequests.remove(it)
 
-                            //release mechanism
-                            if (ai.hasCooldown()) Executor.schedule(
-                                { AIs[it.type]?.add(ai) },
-                                ai.countdown?.toMillis() ?: 0L,
-                                TimeUnit.MILLISECONDS
-                            )
+                                it.future.complete(
+                                    response ?: AIResponse(
+                                        (throwable as CompletionException).cause!!.localizedMessage,
+                                        isError = true
+                                    )
+                                )
+                            }
                         }
                     }
                 }
 
-                Thread.sleep(60)
             }.exceptionOrNull()?.printStackTrace()
-        }
+        }, 60, 60, TimeUnit.MILLISECONDS)
     }
 
-    fun register(name: String, factory: AIFactory) =
-        Factories.put(name, factory)
+    fun register(type: String, factory: AIFactory) {
+        Factories[type] = factory
+        Requests.getOrPut(type, ::LinkedList)
+    }
 
     fun load(presets: JsonArray) = presets.map(JsonElement::getAsJsonObject).forEach {
         val type = it.get("type").asString
         val ai = Factories[type]!!.create(it)
 
-        AIs.getOrPut(type, ::arrayListOf).add(ai)
+        AIs.add(ai)
     }
 
-    fun request(
-        id: Long,
-        type: String,
-        message: String,
-        activateHandler: (() -> Unit)? = null
-    ) = CompletableFuture<AIResponse>().apply {
-        Requests.add(AIRequest(id, type, message, this, activateHandler))
+    fun request(chat: Chat, handler: ((AIRequest.ProcessStatus) -> Unit)? = null) = synchronized(Requests) {
+        if (isRequesting(chat))
+            return@synchronized null
+        else AIRequest(chat, handler).apply(Requests[chat.type]!!::add).future
     }
+
+    fun cancel(chat: Chat) {
+        Requests[chat.type]
+            ?.filter { it.chat.id.value == chat.id.value }
+            ?.forEach {
+                it.statusHandler?.invoke(AIRequest.ProcessStatus.CANCELLING)
+                Requests[chat.type]?.remove(it)
+            }
+    }
+
+    fun isRequesting(chat: Chat) = CompletingRequests.any { it.chat.id.value == chat.id.value }
+            || Requests[chat.type]!!.any { it.chat.id.value == chat.id.value }
 
 }
-
-data class AIRequest(
-    val id: Long,
-    val type: String,
-    val message: String,
-    val future: CompletableFuture<AIResponse>,
-    val activateHandler: (() -> Unit)?
-)
 
 interface AIFactory {
 

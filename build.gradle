@@ -1,4 +1,5 @@
 plugins {
+    id 'java'
     id 'org.jetbrains.kotlin.jvm' version '1.8.20'
 }
 
@@ -6,6 +7,7 @@ group = 'ru.dargen'
 version = '1.0.0'
 
 repositories {
+    mavenCentral()
     maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
     maven { url 'https://repo.starfarm.fun/repository/maven-public' }
 }
@@ -13,7 +15,13 @@ repositories {
 dependencies {
     implementation fileTree('.libs')
 
-    implementation 'net.dv8tion:JDA:5.0.0-alpha.18'
+    implementation 'org.jetbrains.exposed:exposed-core:0.40.1'
+    implementation 'org.jetbrains.exposed:exposed-dao:0.40.1'
+    implementation 'org.jetbrains.exposed:exposed-jdbc:0.40.1'
+    implementation 'mysql:mysql-connector-java:8.0.28'
+    runtimeOnly 'mysql:mysql-connector-java:8.0.28'
+
+    implementation 'net.dv8tion:JDA:5.0.0-beta.9'
 
     implementation 'org.jsoup:jsoup:1.14.2'
     implementation 'ru.dargen:rest-client:1.0.0'

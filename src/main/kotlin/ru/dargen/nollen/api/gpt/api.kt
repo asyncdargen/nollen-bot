@@ -1,8 +1,8 @@
-package ru.dargen.nollen.api.openai
+package ru.dargen.nollen.api.gpt
 
+import ru.dargen.nollen.Gson
 import ru.dargen.nollen.RestClient
-import ru.dargen.nollen.api.Completion
-import ru.dargen.nollen.api.CompletionMessage
+import ru.dargen.nollen.data.ChatMessage
 import ru.dargen.rest.annotation.*
 import ru.dargen.rest.annotation.parameter.Body
 import ru.dargen.rest.annotation.parameter.Header
@@ -19,10 +19,12 @@ interface OpenAIController {
     fun requestCompletions(
         @Body request: OpenAIRequestData,
         @Header("Authorization") key: String
-    ): String//CompletableFuture<String>
+    ): String
 
 }
 
-data class OpenAIRequestData(val messages: List<CompletionMessage>, val model: String = "gpt-3.5-turbo") {
-    constructor(completion: Completion) : this(completion.history)
+data class OpenAIRequestData(val messages: List<ChatMessage>, val model: String = "gpt-3.5-turbo") {
+    init {
+        println(Gson.toJson(this))
+    }
 }
